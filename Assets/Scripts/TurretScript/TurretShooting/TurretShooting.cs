@@ -1,86 +1,71 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 
 public class TurretShooting : MonoBehaviour
 {
-    [SerializeField] private BulletController bulletPrefab;
+    [SerializeField] private BulletController prefab;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private Transform bulletBucket;
+    [SerializeField] private Transform container;
+
     [SerializeField] private int poolSize = 20;
     [SerializeField] private float fireRate = 0.2f;
     [SerializeField] private float bulletSpeed;
-    private List<BulletController> bulletPool = new List<BulletController>();
-    public bool canShoot;
-    private float nextFireTime;
 
-    private void Start()
+    private readonly List<BulletController> _pool = new();
+
+    private bool _canShoot;
+    private float _nextFireTime;
+
+    private void Awake()
     {
-        CreateBulletPool();
-    }
-
-    private void CreateBulletPool()
-    {
-        bulletPool.Clear();
-
         for (int i = 0; i < poolSize; i++)
         {
-            var bulletObj = Instantiate(bulletPrefab, bulletBucket);
-            bulletObj.Deactivate();
-            bulletPool.Add(bulletObj);
+            var b = Instantiate(prefab, container);
+            b.gameObject.SetActive(false);
+            _pool.Add(b);
         }
-    }
-
-    private void Shoot()
-    {
-        if (Time.time < nextFireTime)
-        {
-            return;
-        }
-
-        var bullet = GetAvailableBullet();
-
-        if (bullet == null)
-        {
-            return;
-        }
-
-        bullet.transform.position = firePoint.position;
-        bullet.transform.rotation = firePoint.rotation;
-        var shootDir = firePoint.forward;
-        bullet.gameObject.SetActive(true);
-        bullet.Shoot(shootDir,bulletSpeed);
-        nextFireTime = Time.time * fireRate;
-    }
-
-    private BulletController GetAvailableBullet()
-    {
-        foreach (var bullet in bulletPool)
-        {
-            if (!bullet.gameObject.activeInHierarchy)
-            {
-                return bullet;
-            }
-        }
-        return null;
     }
 
     private void Update()
     {
-        if (Input.GetMouseButtonUp(0) && canShoot)
+        if (!_canShoot) return;
+
+        if (Input.GetMouseButton(0))
+            TryShoot();
+    }
+
+    private void TryShoot()
+    {
+        if (Time.time < _nextFireTime) return;
+
+        var bullet = Get();
+
+        if (bullet == null) return;
+
+        bullet.transform.SetPositionAndRotation(firePoint.position, firePoint.rotation);
+        bullet.gameObject.SetActive(true);
+        bullet.Shoot(firePoint.forward, bulletSpeed);
+
+        _nextFireTime = Time.time + fireRate;
+    }
+
+    private BulletController Get()
+    {
+        for (int i = 0; i < _pool.Count; i++)
         {
-            Shoot();
+            if (!_pool[i].gameObject.activeInHierarchy)
+                return _pool[i];
         }
+
+        return null;
     }
 
-    public void EnableShooting()
+    public async UniTaskVoid EnableWithDelay(float delay = 0.3f)
     {
-        StartCoroutine(EnableShootingCor());
+        await UniTask.Delay((int)(delay * 1000));
+        _canShoot = true;
     }
 
-    private IEnumerator EnableShootingCor()
-    {
-        yield return new WaitForSeconds(0.3f);
-        canShoot = true;
-    }
+    public void Disable() => _canShoot = false;
 }

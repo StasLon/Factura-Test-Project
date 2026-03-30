@@ -4,62 +4,42 @@ using TMPro;
 
 public class FinishProgress : MonoBehaviour
 {
-    [SerializeField] private GameUIManager gameUI;
-    [SerializeField] private CarMovement carMovScript;
+    [SerializeField] private Transform player;
+    [SerializeField] private float finishDistance = 100f;
 
-    public Transform player;
+    [SerializeField] private Slider bar;
+    [SerializeField] private TMP_Text text;
 
-    public float finishDistance = 100f;
+    public event System.Action Finished;
 
-    public Slider progressBar;
-    public TMP_Text progressText; // TMP ÚÂÍÒÚ
+    private float _startZ;
+    private bool _done;
 
-    private float startZ;
-    private bool isFinished = false;
-
-    void Start()
+    private void Awake()
     {
-        startZ = player.position.z;
-
-        if (progressBar != null)
-            progressBar.value = 0f;
-
-        if (progressText != null)
-            progressText.text = "0 / " + finishDistance + " m";
+        _startZ = player.position.z;
+        UpdateUI(0);
     }
 
-    void Update()
+    private void Update()
     {
-        if (isFinished) return;
+        if (_done) return;
 
-        float distanceTravelled = player.position.z - startZ;
-        distanceTravelled = Mathf.Clamp(distanceTravelled, 0, finishDistance);
+        float dist = Mathf.Clamp(player.position.z - _startZ, 0, finishDistance);
+        float progress = dist / finishDistance;
 
-        float progress = distanceTravelled / finishDistance;
-
-        if (progressBar != null)
-            progressBar.value = progress;
-
-        if (progressText != null)
-        {
-            int current = Mathf.FloorToInt(distanceTravelled);
-            int total = Mathf.FloorToInt(finishDistance);
-            progressText.text = current + " " + "m";
-        }
+        UpdateUI(dist);
 
         if (progress >= 1f)
         {
-            Finish();
+            _done = true;
+            Finished?.Invoke();
         }
     }
 
-    void Finish()
+    private void UpdateUI(float dist)
     {
-        isFinished = true;
-
-        gameUI.ShowWinPanel();
-        carMovScript.enabled = false;
-
-        Debug.Log("œŒ¡≈ƒ¿");
+        bar.value = dist / finishDistance;
+        text.text = $"{Mathf.FloorToInt(dist)} m";
     }
 }

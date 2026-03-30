@@ -2,41 +2,44 @@ using UnityEngine;
 
 public class RoadManager : MonoBehaviour
 {
-    public Transform player;
+    [Header("Player Reference")]
+    [SerializeField] private Transform player;
 
-    public GameObject tile1;
-    public GameObject tile2;
+    [Header("Road Tiles")]
+    [SerializeField] private GameObject tile1;
+    [SerializeField] private GameObject tile2;
 
-    public float tileLength = 100f;
-    public float tileOffset = 70f;
+    [Header("Tile Settings")]
+    [SerializeField] private float tileLength = 100f;
+    [SerializeField] private float tileOffset = 70f;
+    [SerializeField] private float extraDistance = 20f; 
 
-    public float extraDistance = 20f;
+    private GameObject _currentTile;
+    private GameObject _nextTile;
 
-    private GameObject currentTile;
-    private GameObject nextTile;
-
-    void Start()
+    private void Start()
     {
-        currentTile = tile1;
-        nextTile = tile2;
+        _currentTile = tile1;
+        _nextTile = tile2;
     }
 
-    void Update()
+    private void Update()
     {
-        // теперь ждём, пока игрок проедет чуть дальше
-        if (player.position.z > currentTile.transform.position.z + tileLength / 2 + extraDistance)
+        if (IsPlayerPastCurrentTile())
         {
-            MoveTile();
+            SwapAndMoveTiles();
         }
     }
 
-    void MoveTile()
+    private bool IsPlayerPastCurrentTile()
     {
-        currentTile.transform.position =
-            nextTile.transform.position + Vector3.forward * tileOffset;
+        return player.position.z > _currentTile.transform.position.z + tileLength / 2 + extraDistance;
+    }
 
-        GameObject temp = currentTile;
-        currentTile = nextTile;
-        nextTile = temp;
+    private void SwapAndMoveTiles()
+    {
+        _currentTile.transform.position = _nextTile.transform.position + Vector3.forward * tileOffset;
+
+        (_currentTile, _nextTile) = (_nextTile, _currentTile);
     }
 }

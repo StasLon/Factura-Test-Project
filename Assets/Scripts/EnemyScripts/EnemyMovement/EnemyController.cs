@@ -2,92 +2,74 @@ using UnityEngine;
 
 public class EnemyController : MonoBehaviour
 {
-    public Transform player;        // Transform машины
-    public CarHealth playerHealth;  // ссылка на скрипт CarHealth машины
+    [SerializeField] private float detectionDistance = 20f;
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float rotationSpeed = 10f;
+    [SerializeField] private int damage = 20;
     [SerializeField] private Animator animator;
 
-    public float detectionDistance = 20f; // дистанция агрессии
-    public float moveSpeed = 5f;
-    public float rotationSpeed = 10f;
+    private Transform _target;
+    private CarHealth _targetHealth;
 
-    public int damage = 20;
-    private bool hasAttacked = false; // чтобы атаковать только один раз
-    private bool isChasing = false;   // начал ли преследование
+    private bool _isChasing;
+    private bool _hasAttacked;
 
-    private void Start()
+    public void Initialize(Transform target, CarHealth health)
     {
-        playerHealth = FindAnyObjectByType<CarHealth>();
-        player = playerHealth.gameObject.transform;
+        _target = target;
+        _targetHealth = health;
     }
-    void Update()
+
+    private void Update()
     {
-        if (player == null || playerHealth == null) return;
+        if (_target == null || _targetHealth == null) return;
 
-        float distance = Vector3.Distance(transform.position, player.position);
+        float distance = Vector3.Distance(transform.position, _target.position);
 
-        // начинаем преследовать только если игрок близко
-        if (!isChasing && distance <= detectionDistance)
+        if (!_isChasing && distance <= detectionDistance)
+            _isChasing = true;
+
+        if (_isChasing)
         {
-            isChasing = true;
-
-        }
-
-        if (isChasing)
-        {
-            ChasePlayer();
-
-            if (animator != null)
-                animator.SetBool("Attacking", true);
-            Debug.Log($"{animator.GetBool("Attacking")}");
+            Chase();
+            animator?.SetBool("Attacking", true);
         }
         else
         {
-            if (animator != null)
-                animator.SetBool("Attacking", false);
-            Debug.Log($"{animator.GetBool("Attacking")}");
+            animator?.SetBool("Attacking", false);
         }
-
     }
 
-    void ChasePlayer()
+    private void Chase()
     {
-        // направление на игрока
-        Vector3 direction = (player.position - transform.position).normalized;
+        Vector3 dir = (_target.position - transform.position).normalized;
 
-        // плавный поворот
-        Quaternion targetRotation = Quaternion.LookRotation(direction);
-        transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        Quaternion rot = Quaternion.LookRotation(dir);
+        transform.rotation = Quaternion.Lerp(transform.rotation, rot, rotationSpeed * Time.deltaTime);
 
-        // движение вперёд
         transform.Translate(Vector3.forward * moveSpeed * Time.deltaTime);
-
-        
     }
 
-    private void OnDisable()
-    {
-        isChasing = false;
-        animator.SetBool("Attacking", false);
-    }
-
-      
     void OnCollisionEnter(Collision collision)
     {
-        if (hasAttacked) return; // уже атаковал
+        if (_hasAttacked) return;
 
         if (collision.gameObject.CompareTag("Player"))
         {
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(damage);
-            }
-
-            hasAttacked = true;
+            _targetHealth?.TakeDamage(damage);
+            _hasAttacked = true;
 
             var enemy = GetComponent<Enemy>();
-            FindAnyObjectByType<EnemySpawner>()?.ReturnEnemy(enemy, VFXType.DeathCollision);
-            gameObject.SetActive(false);
-
+            enemy?.ForceKill(VFXType.DeathCollision);
         }
     }
+
+    public void OnDisable()
+    {
+        _isChasing = false;
+        _hasAttacked = false;
+        animator?.SetBool("Attacking", false);
+    }
+
+  
 }

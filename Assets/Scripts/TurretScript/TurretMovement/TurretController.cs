@@ -2,72 +2,71 @@ using UnityEngine;
 
 public class TurretController : MonoBehaviour
 {
-    public Transform turretPivot;    // сам объект турели (ось поворота)
-    public Transform laserStart;     // точка, откуда идёт лазер
-    public LineRenderer laserLine;
-    public bool canMoveTurret;
+    [SerializeField] private Transform pivot;
+    [SerializeField] private Transform laserStart;
+    [SerializeField] private LineRenderer laser;
 
-    public float rotationSpeed = 5f; // скорость поворота турели
-    public float laserLength = 10f;  // длина лазера
+    [SerializeField] private float rotationSpeed = 5f;
+    [SerializeField] private float laserLength = 10f;
 
-    // ограничения поворота по Y относительно начального направления
-    public float minY = -60f; // влево
-    public float maxY = 60f;  // вправо
-    private float initialY;    // исходный угол Y
+    [SerializeField] private float minY = -60f;
+    [SerializeField] private float maxY = 60f;
 
-    void Start()
+    private float _initialY;
+    private bool _enabled;
+
+    public void Enable() => _enabled = true;
+    public void Disable() => _enabled = false;
+
+    private void Awake()
     {
-        if (turretPivot != null)
-            initialY = turretPivot.eulerAngles.y;
+        if (pivot != null)
+            _initialY = pivot.eulerAngles.y;
     }
 
-    void Update()
+    private void Update()
     {
-        if (canMoveTurret)
-        {
-            RotateTurret();
-            UpdateLaser(); 
-        }
-        
+        if (!_enabled) return;
+
+        Rotate();
+        UpdateLaser();
     }
 
-    void RotateTurret()
+    private void Rotate()
     {
-        if (turretPivot == null) return;
+        if (pivot == null) return;
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        Plane groundPlane = new Plane(Vector3.up, turretPivot.position);
+        var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        var plane = new Plane(Vector3.up, pivot.position);
 
-        if (groundPlane.Raycast(ray, out float enter))
-        {
-            Vector3 hitPoint = ray.GetPoint(enter);
-            Vector3 direction = hitPoint - turretPivot.position;
-            direction.y = 0;
+        if (!plane.Raycast(ray, out float enter)) return;
 
-            if (direction.sqrMagnitude > 0.001f)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
+        var hit = ray.GetPoint(enter);
+        var dir = hit - pivot.position;
+        dir.y = 0;
 
-                // ограничиваем угол
-                float desiredY = Mathf.DeltaAngle(0, targetRotation.eulerAngles.y);
-                float clampedY = Mathf.Clamp(desiredY - initialY, minY, maxY) + initialY;
+        if (dir.sqrMagnitude < 0.001f) return;
 
-                Quaternion clampedRotation = Quaternion.Euler(0, clampedY, 0);
+        var targetRot = Quaternion.LookRotation(dir);
 
-                turretPivot.rotation = Quaternion.Lerp(turretPivot.rotation, clampedRotation, rotationSpeed * Time.deltaTime);
-            }
-        }
+        float desiredY = Mathf.DeltaAngle(0, targetRot.eulerAngles.y);
+        float clampedY = Mathf.Clamp(desiredY - _initialY, minY, maxY) + _initialY;
+
+        var finalRot = Quaternion.Euler(0, clampedY, 0);
+
+        pivot.rotation = Quaternion.Lerp(
+            pivot.rotation,
+            finalRot,
+            rotationSpeed * Time.deltaTime
+        );
     }
 
-    void UpdateLaser()
+    private void UpdateLaser()
     {
-        if (laserLine == null || laserStart == null) return;
+        if (laser == null || laserStart == null) return;
 
-        laserLine.positionCount = 2;
-        laserLine.SetPosition(0, laserStart.position);
-
-        // Конец линии = вперед от турели на laserLength
-        Vector3 endPoint = laserStart.position + turretPivot.forward * laserLength;
-        laserLine.SetPosition(1, endPoint);
+        laser.positionCount = 2;
+        laser.SetPosition(0, laserStart.position);
+        laser.SetPosition(1, laserStart.position + pivot.forward * laserLength);
     }
 }

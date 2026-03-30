@@ -1,91 +1,95 @@
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
+using System;
 
 public class CarHealth : MonoBehaviour
 {
-    [SerializeField] GameUIManager gameUi;
-    [SerializeField] private GameObject lowHealthVFX;
+    [SerializeField] private int maxHealth = 100;
     [SerializeField] private int lowHealthThreshold = 40;
-    [SerializeField] private Image healthBarIMG;
+
+    [Header("View")]
+    [SerializeField] private Image healthBar;
+    [SerializeField] private Renderer carRenderer;
+    [SerializeField] private GameObject lowHealthVFX;
+
+    [Header("Tween")]
     [SerializeField] private float tweenDuration = 0.35f;
-    [SerializeField] private Ease easeType = Ease.OutQuint;
+    [SerializeField] private Ease ease = Ease.OutQuint;
+    [SerializeField] private float flashDuration = 0.7f;
 
-    public int maxHealth = 100;
-    private int currentHealth = 100;
-    public Renderer carRenderer;
+    private int _currentHealth;
+    private Color _originalColor;
+    private Tween _healthTween;
 
-    private Color originalColor;
-    private Tween healthTween;
-    private bool healthBarActivated = false;
-    private float flashDuration = 0.7f;
+    public int CurrentHealth => _currentHealth;
 
-    public int CurrentHealth => currentHealth;
+    public event Action Died;
+    public event Action<int, int> HealthChanged;
 
-    void Start()
+    private void Awake()
     {
-        currentHealth = maxHealth;
+        _currentHealth = maxHealth;
 
         if (carRenderer != null)
-            originalColor = carRenderer.material.color;
+            _originalColor = carRenderer.material.color;
 
         if (lowHealthVFX != null)
             lowHealthVFX.SetActive(false);
 
-        if (healthBarIMG != null)
-            healthBarIMG.fillAmount = 1f;
+        if (healthBar != null)
+            healthBar.fillAmount = 1f;
     }
 
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        if (_currentHealth <= 0) return;
 
-        Debug.Log("HP: " + currentHealth);
+        _currentHealth = Mathf.Clamp(_currentHealth - damage, 0, maxHealth);
+
+        HealthChanged?.Invoke(_currentHealth, maxHealth);
 
         UpdateHealthBar();
+        Flash();
 
-        if (carRenderer != null)
-            FlashWhite();
+        if (_currentHealth <= lowHealthThreshold)
+            lowHealthVFX?.SetActive(true);
 
-        if (currentHealth <= 0)
-            Die();
-
-        if (lowHealthVFX != null && currentHealth <= lowHealthThreshold)
-            lowHealthVFX.SetActive(true);
+        if (_currentHealth == 0)
+            Died?.Invoke();
     }
 
     private void UpdateHealthBar()
     {
-        float targetFill = (float)currentHealth / maxHealth;
+        if (healthBar == null) return;
 
-        if (healthBarIMG != null)
-        {
-            healthTween?.Kill();
-            healthTween = DOTween.To(() => healthBarIMG.fillAmount,
-                                     x => healthBarIMG.fillAmount = x,
-                                     targetFill, tweenDuration)
-                                 .SetEase(easeType);
-        }
+        float target = (float)_currentHealth / maxHealth;
+
+        _healthTween?.Kill();
+        _healthTween = DOTween.To(
+            () => healthBar.fillAmount,
+            x => healthBar.fillAmount = x,
+            target,
+            tweenDuration
+        ).SetEase(ease);
     }
 
-    private void FlashWhite()
+    private void Flash()
     {
+        if (carRenderer == null) return;
+
         carRenderer.material.color = Color.white;
-        DOTween.To(() => carRenderer.material.color,
-                   x => carRenderer.material.color = x,
-                   originalColor, flashDuration)
-               .SetEase(Ease.OutQuad);
-    }
 
-    void Die()
-    {
-        gameUi.ShowLosePanel();
-        Debug.Log("Машина уничтожена");
+        DOTween.To(
+            () => carRenderer.material.color,
+            x => carRenderer.material.color = x,
+            _originalColor,
+            flashDuration
+        );
     }
 
     private void OnDestroy()
     {
-        healthTween?.Kill();
+        _healthTween?.Kill();
     }
 }

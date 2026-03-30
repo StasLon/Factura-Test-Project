@@ -2,37 +2,36 @@ using UnityEngine;
 
 public class CarMovement : MonoBehaviour
 {
-    public float forwardSpeed = 10f;   // скорость вперёд
-    public float sideAmplitude = 2f;   // насколько сильно уводит в стороны
-    public float sideFrequency = 1f;   // как часто меняет направление
-    public bool canMove;
+    [SerializeField] private float forwardSpeed = 10f;
+    [SerializeField] private float sideAmplitude = 2f;
+    [SerializeField] private float sideFrequency = 1f;
 
-    private float startX;
+    private float _startX;
+    public bool _isMoving;
 
-    void Start()
+    public void Enable() => _isMoving = true;
+    public void Disable() => _isMoving = false;
+
+    private void Awake()
     {
-        startX = transform.position.x;
+        _startX = transform.position.x;
     }
 
-    void Update()
+    private void Update()
     {
-        if (canMove)
-        {
-            MoveCar();
-        }
-     }
+        if (!_isMoving) return;
 
-   private void MoveCar()
+        Move();
+    }
+
+    private void Move()
     {
-        // движение вперёд
         transform.Translate(Vector3.forward * forwardSpeed * Time.deltaTime);
 
-        // плавное движение влево-вправо
-        float xOffset = Mathf.Sin(Time.time * sideFrequency) * sideAmplitude;
+        float offset = Mathf.Sin(Time.time * sideFrequency) * sideAmplitude;
 
-        Vector3 pos = transform.position;
-        pos.x = startX + xOffset;
-
+        var pos = transform.position;
+        pos.x = _startX + offset;
         transform.position = pos;
     }
 }

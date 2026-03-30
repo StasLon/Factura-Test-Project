@@ -15,21 +15,17 @@ public class VFXPool : MonoBehaviour
     {
         InitializePool(VFXType.DeathNormal, normalDeathPrefab);
         InitializePool(VFXType.DeathCollision, collisionDeathPrefab);
-
-        Debug.Log($"VFXPool: Initialized with {initialPoolSize} particles for each VFX type.");
     }
 
     private void InitializePool(VFXType type, GameObject prefab)
     {
         if (prefab == null)
         {
-            Debug.LogError($"VFXPool: Prefab for {type} is not assigned!");
             return;
         }
 
         if (!prefab.TryGetComponent<IVFX>(out _))
         {
-            Debug.LogError($"VFXPool: {type} prefab does not implement IVFX!");
             return;
         }
 
@@ -43,15 +39,13 @@ public class VFXPool : MonoBehaviour
 
     private IVFX CreateNewVFX(VFXType type, GameObject prefab)
     {
-        GameObject instance = Instantiate(prefab, transform);
-        instance.SetActive(false);
+        var go = Instantiate(prefab, transform);
+        go.SetActive(false);
 
-        if (!instance.TryGetComponent(out IVFX vfx))
-        {
-            Debug.LogError($"VFXPool: Failed to get IVFX from {type} prefab!");
-            Destroy(instance);
-            return null;
-        }
+        var vfx = go.GetComponent<IVFX>();
+
+        if (go.TryGetComponent(out DeathVFX dvfx))
+            dvfx.Construct(this);
 
         _pools[type].Enqueue(vfx);
         return vfx;
@@ -61,7 +55,6 @@ public class VFXPool : MonoBehaviour
     {
         if (!_pools.TryGetValue(type, out var queue) || queue == null)
         {
-            Debug.LogWarning($"VFXPool: No pool for VFX type {type}");
             return;
         }
 
@@ -91,8 +84,6 @@ public class VFXPool : MonoBehaviour
 
         vfx.PlayAt(position, rotation);
         _activeVFX.Add(vfx);
-
-        Debug.Log($"VFXPool: Played {type} at {position}");
     }
 
     public void ReturnToPool(IVFX vfx)
@@ -116,7 +107,6 @@ public class VFXPool : MonoBehaviour
         }
 
         _activeVFX.Remove(vfx);
-        Debug.Log($"VFXPool: Returned {type} to pool.");
     }
 
     public void ReturnAllToPool()
@@ -125,6 +115,5 @@ public class VFXPool : MonoBehaviour
         {
             ReturnToPool(vfx);
         }
-        Debug.Log("VFXPool: All VFX returned to pools.");
     }
 }

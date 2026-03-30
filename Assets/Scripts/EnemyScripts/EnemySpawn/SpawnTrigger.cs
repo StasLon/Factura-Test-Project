@@ -5,33 +5,19 @@ using UnityEngine;
 public class SpawnTrigger : MonoBehaviour
 {
     [SerializeField] private EnemySpawner spawner;
-    [SerializeField] private List<Transform> spawnPoints = new List<Transform>();
+    [SerializeField] private List<Transform> spawnPoints;
+    [SerializeField] private Transform player;
+    [SerializeField] private CarHealth playerHealth;
 
-    private bool _hasTriggered = false;
+    private bool _triggered;
 
     private void OnTriggerEnter(Collider other)
     {
+        if (_triggered) return;
         if (!other.CompareTag("Player")) return;
 
-        _hasTriggered = true;
+        _triggered = true;
 
-        if (spawner == null)
-        {
-            Debug.LogError("SpawnTrigger: Spawner is not assigned on " + gameObject.name);
-            return;
-        }
-
-        Debug.Log($"SpawnTrigger: Player entered trigger {gameObject.name}. Spawning enemies...");
-        spawner.SpawnEnemiesAtPoints(spawnPoints);
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(1f, 0.92f, 0.016f, 0.7f);
-        foreach (var point in spawnPoints)
-        {
-            if (point != null)
-                Gizmos.DrawSphere(point.position, 0.8f);
-        }
+        spawner.Spawn(spawnPoints, player, playerHealth);
     }
 }

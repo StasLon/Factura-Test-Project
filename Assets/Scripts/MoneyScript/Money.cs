@@ -1,28 +1,25 @@
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+using System;
 
 public class Money : MonoBehaviour
 {
-    public int currentGold = 0;
+    [SerializeField] private TMP_Text text;
 
-    public TMP_Text goldText;
+    private int _gold;
 
-    void Start()
+    public event Action<int> Changed;
+
+    public void Add(int amount)
     {
+        _gold += amount;
+        Changed?.Invoke(_gold);
         UpdateUI();
     }
 
-    public void AddGold(int amount)
+    private void UpdateUI()
     {
-        currentGold += amount;
-        UpdateUI();
-    }
-
-    void UpdateUI()
-    {
-        if (goldText != null)
-        {
-            goldText.text = currentGold.ToString();
-        }
+        if (text != null)
+            text.text = _gold.ToString();
     }
 }

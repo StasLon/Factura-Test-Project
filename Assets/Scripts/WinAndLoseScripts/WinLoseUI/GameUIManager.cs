@@ -3,45 +3,51 @@ using UnityEngine.SceneManagement;
 
 public class GameUIManager : MonoBehaviour
 {
-    public GameObject winPanel; // панель победы
-    public GameObject losePanel;
-    [SerializeField] CarMovement carMove;
-    public void ShowWinPanel()
+    [SerializeField] private GameObject winPanel;
+    [SerializeField] private GameObject losePanel;
+    [SerializeField] private CarMovement car;
+    [SerializeField] private CarHealth playerHealth;
+    [SerializeField] private FinishProgress progress;
+    [SerializeField] private CarMovement carMovement;
+    [SerializeField] private EnemySpawner spawner;
+    [SerializeField] private TurretController turretController;
+    [SerializeField] private TurretShooting turretShooting;
+
+
+    private void Awake()
     {
-        if (winPanel != null)
-        {
-            winPanel.SetActive(true);
-            carMove.canMove = false;
-        }
+        playerHealth.Died += ShowLose;
+        progress.Finished += OnFinished;
+    }
+    private void OnFinished()
+    {
+        ShowWin();
+    }
+    public void ShowWin()
+    {
+        winPanel?.SetActive(true);
+        car.Disable();
+
+        turretController.Disable();
+        turretShooting.Disable();
+
+        spawner?.StopAllEnemies();
     }
 
-    public void HideWinPanel()
+    public void ShowLose()
     {
-        if (winPanel != null)
-        {
-            winPanel.SetActive(false);
-        }
+        losePanel?.SetActive(true);
+        car.Disable();
+
+        turretController.Disable();
+        turretShooting.Disable();
+
+        spawner?.StopAllEnemies();
     }
 
-    public void ShowLosePanel()
+    public void Restart()
     {
-        if (losePanel != null)
-        {
-            losePanel.SetActive(true);
-        }
-    }
-
-    public void HideLosePanel()
-    {
-        if (losePanel != null)
-        {
-            losePanel.SetActive(false);
-        }
-    }
-
-    public void RestartLevel()
-    {
-        Scene currentScene = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(currentScene.buildIndex);
+        var scene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(scene.buildIndex);
     }
 }

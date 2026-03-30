@@ -14444,4 +14444,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4695dd3057b5aa419ddeb71406690fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  vfxType: 1
+  type: 1
