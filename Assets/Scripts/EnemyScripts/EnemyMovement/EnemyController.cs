@@ -70,6 +70,4 @@ public class EnemyController : MonoBehaviour
         _hasAttacked = false;
         animator?.SetBool("Attacking", false);
     }
-
-  
 }
